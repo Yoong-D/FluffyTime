@@ -1,0 +1,47 @@
+name: Deploy to EC2 # 배포 작업의 이름 지정
+
+on: # 특정 이벤트가 발생할 때 아래 작업을 실행하도록 설정
+  push:
+    branches:
+    - main # 배포할 브랜치 지정
+
+jobs: # 하나 이상의 작업을 정의
+  build-and-deploy:
+    runs-on: ubuntu-latest # 작업이 실행될 환경 지정
+    steps: # 각 단계는 순서대로 실행된다.
+      - name: Checkout source code
+        uses: actions/checkout@v2 # 액션을 사용하여 저장소의 소스 코드를 체크아웃 한다.
+        
+      - name: Set up JDK 21
+        uses: actions/setup-java@v2
+        with:
+          java-version: "21"
+          distribution: "adopt"
+        
+      - name: Build with Gradle
+        run: |
+          chmod 755 ./gradlew
+          ./gradlew build
+        
+      - name: Prepare deployment package
+        run: |
+          cd deployment
+          zip -r deployment.zip appspec.yml scripts/
+          mv deployment.zip ../
+          cd ..
+          zip -r deployment.zip -g build/libs/apirdsdemo-0.0.1-SNAPSHOT.jar
+      
+      - name: Upload to S3
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+      - run: aws s3 cp deployment.zip s3://fluffytime-build-files/  # 해당 명령어를 이용하여 deploymnet.zip 파일을 내가 생성한 s3버킷에 업로드 
+      
+      - name: Deploy with CodeDeploy
+        run: |
+          aws deploy create-deployment \ #AWS CodeDeploy를 사용하여 배포를 생성
+          --application-name fluffytime \ #CdoeDeploy 애플리케이션 이름 지정
+          --deployment-group-name fluffytime-group \ #CodeDeploy 배포 그룹 이름을 지정 
+          --s3-location bucket=fluffytime-build-files,key=deployment.zip,bundleType=zip # S3버킷 명과 파일 경로를 지정하여 배포 패키지를 설정 
