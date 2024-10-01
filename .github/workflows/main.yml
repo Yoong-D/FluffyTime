@@ -1,0 +1,40 @@
+name: Deploy to EC2
+on:
+push:
+branches:
+- main # 배포할 브랜치 지정
+jobs:
+build-and-deploy:
+runs-on: ubuntu-latest # 실행 환경
+steps:
+- name: Checkout source code
+uses: actions/checkout@v2
+- name: Set up JDK 21
+uses: actions/setup-java@v2
+with:
+java-version: "21"
+distribution: "adopt"
+- name: Build with Gradle
+run: |
+chmod 755 ./gradlew
+./gradlew build
+- name: Prepare deployment package
+run: |
+cd deployment
+zip -r deployment.zip appspec.yml scripts/
+mv deployment.zip ../
+cd ..
+zip -r deployment.zip -g build/libs/apirdsdemo-0.0.1-SNAPSHOT.jar
+- name: Upload to S3
+uses: aws-actions/configure-aws-credentials@v1
+with:
+aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+aws-region: ap-northeast-2
+- run: aws s3 cp deployment.zip s3://carami-build-files/
+- name: Deploy with CodeDeploy
+run: |
+aws deploy create-deployment \
+--application-name apirdsdemo \
+--deployment-group-name apirdsdemo-group-name \
+--s3-location bucket=carami-build-files,key=deployment.zip,bundleType=zip
