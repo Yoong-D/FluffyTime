@@ -41,7 +41,8 @@ jobs: # 하나 이상의 작업을 정의
       
       - name: Deploy with CodeDeploy
         run: |
-          aws deploy create-deployment\
-          --application-name fluffytime\
-          --deployment-group-name fluffytime-group\
-          --s3-location bucket=fluffytime-build-files,key=deployment.zip,bundleType=zip
+          aws deploy create-deployment \
+            --application-name fluffytime \
+            --deployment-group-name fluffytime-group \
+            --s3-location bucket=fluffytime-build-files,key=deployment.zip,bundleType=zip
+
