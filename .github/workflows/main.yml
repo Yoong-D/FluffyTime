@@ -29,7 +29,7 @@ jobs: # 하나 이상의 작업을 정의
           zip -r deployment.zip appspec.yml scripts/
           mv deployment.zip ../
           cd ..
-          zip -r deployment.zip -g build/libs/apirdsdemo-0.0.1-SNAPSHOT.jar
+          zip -r deployment.zip -g build/libs/fluffytime-0.0.1-SNAPSHOT.jar
       
       - name: Upload to S3
         uses: aws-actions/configure-aws-credentials@v1
