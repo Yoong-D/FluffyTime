@@ -41,7 +41,7 @@ jobs: # 하나 이상의 작업을 정의
       
       - name: Deploy with CodeDeploy
         run: |
-          aws deploy create-deployment \ #AWS CodeDeploy를 사용하여 배포를 생성
-          --application-name fluffytime \ #CdoeDeploy 애플리케이션 이름 지정
-          --deployment-group-name fluffytime-group \ #CodeDeploy 배포 그룹 이름을 지정 
-          --s3-location bucket=fluffytime-build-files,key=deployment.zip,bundleType=zip # S3버킷 명과 파일 경로를 지정하여 배포 패키지를 설정 
+          aws deploy create-deployment\
+          --application-name fluffytime\
+          --deployment-group-name fluffytime-group\
+          --s3-location bucket=fluffytime-build-files,key=deployment.zip,bundleType=zip
