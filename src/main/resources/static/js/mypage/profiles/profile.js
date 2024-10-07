@@ -257,13 +257,21 @@ function deleteImage(data) {
 
 // 차단 유저 리스트 업데이트 함수
 function updateBlockedUsersList(data) {
-  if (data.blockedUsers.length > 0) {
+  if (data.blockUserList.length > 0) {
     // 차단된 유저 리스트가 있다면 모달에 표시
-    const blockUserList = getElement('block-user-list');
-    blockUserList.innerHTML = data.blockedUsers.map(
-        user => `<li>${user}</li>`).join('');
+    const blockList = getElement('block-user-list-modal');
+    blockList.innerHTML = data.blockUserList.map(
+        user => `
+        <div onclick="location.href='/userpages/${user.nickname}'">
+            <img src="${user.fileUrl}" alt="${user.nickname}'s profile picture">
+            <span>${user.nickname}</span>
+        </div>`
+    ).join('');
+
     blockModal.classList.add('show');
     blockModalOverlay.style.display = 'block';
+
+
   } else {
     alert("차단된 유저가 없습니다.");
   }

@@ -1,5 +1,6 @@
 package com.fluffytime.domain.user.dao;
 
+import com.fluffytime.domain.user.entity.User;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -11,7 +12,7 @@ public class UserBlockDao {
 
     private final RedisTemplate<String, String> redisTemplate;
 
-    // SET 자료 구조로 차단 리스트 관리 -> 중복 불 허용
+    // SET 자료 구조로 차단 리스트 관리(중복X)
     // 차단하는 유저 - 차단 당하는 유저 저장
     public void saveUserBlockList(String blocker, String targetUser) {
         redisTemplate.opsForSet().add(blocker, targetUser);

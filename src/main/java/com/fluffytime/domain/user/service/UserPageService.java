@@ -4,22 +4,16 @@ import com.fluffytime.domain.board.entity.Mention;
 import com.fluffytime.domain.board.entity.enums.TempStatus;
 import com.fluffytime.domain.board.repository.MentionRepository;
 import com.fluffytime.domain.user.dao.UserBlockDao;
-import com.fluffytime.domain.user.dto.response.BlockUserListResponse;
 import com.fluffytime.domain.user.dto.response.PostResponse;
-import com.fluffytime.domain.user.dto.response.UserBlockResponse;
 import com.fluffytime.domain.user.dto.response.UserPageInformationResponse;
 import com.fluffytime.domain.user.entity.Profile;
 import com.fluffytime.domain.user.entity.User;
 import com.fluffytime.domain.user.exception.UserPageNotFound;
 import com.fluffytime.global.auth.jwt.exception.TokenNotFound;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class UserPageService {
 
-    private final MyPageService myPageService;
+    private final MyPageService mypageService;
+    private final UserBlockService userBlockService;
     private final UserBlockDao userBlockDao;
     private final MentionRepository mentionRepository;
+
 
     // 기존 게시물 리스트에서 필요한 데이터만(이미지) 담은 postDto 리스트로 변환하는 메서드
     public List<PostResponse> postList(User user) {
@@ -89,7 +85,7 @@ public class UserPageService {
             .petSex(profile.getPetSex()) // 반려동물 성별
             .petAge(profile.getPetAge()) // 반려동물 나이
             .intro(profile.getIntro()) // 소개글
-            .fileUrl(myPageService.profileFileUrl(profile.getProfileImages())) // 프로필 파일 경로
+            .fileUrl(mypageService.profileFileUrl(profile.getProfileImages())) // 프로필 파일 경로
             .publicStatus(profile.getPublicStatus()) // 프로필 공개 여부
             .isUserBlocked(isUserBlocked) // 해당 유저를 사용자가 차단 했는지 여부
             .build();
@@ -99,8 +95,8 @@ public class UserPageService {
     @Transactional
     public UserPageInformationResponse createUserPageInformationDto(String nickname,
         HttpServletRequest httpServletRequest) {
-        User me = myPageService.findByAccessToken(httpServletRequest);
-        User user = myPageService.findUserByNickname(nickname);
+        User me = mypageService.findByAccessToken(httpServletRequest); // 현재 로그인한 유저
+        User user = mypageService.findUserByNickname(nickname);
 
         if (me == null) {
             throw new TokenNotFound();
@@ -109,7 +105,7 @@ public class UserPageService {
         if (user != null) {
             log.info("UserPageInformationDto 실행 >> 해당 유저가 존재하여 UserPageInformationDto를 구성");
             Profile profile = user.getProfile(); //프로필 객체
-            boolean isUserBlocked = isUserBlocked(me.getNickname(), user.getNickname());
+            boolean isUserBlocked = userBlockService.isUserBlocked(me.getUserId(), user.getUserId()); // 차단 여부 반환
 
             // 기존 게시물 리스트에서 필요한 데이터만(이미지) 담은 postDto 리스트로 변환
             List<PostResponse> postsList = postList(user);
@@ -132,78 +128,5 @@ public class UserPageService {
 
     }
 
-    // 유저 차단  메서드
-    @Transactional
-    public UserBlockResponse userBlock(String targetUser,
-        HttpServletRequest httpServletRequest) {
-        log.info("userBlock 실행");
-        String blocker = myPageService.findByAccessToken(httpServletRequest).getNickname();
-        UserBlockResponse userBlockResponse = new UserBlockResponse(true);
-        if (blocker == null) {
-            userBlockResponse.setUserBlockResult(false);
-            throw new TokenNotFound();
-        }
-        userBlockDao.saveUserBlockList(blocker, targetUser);
-        return userBlockResponse;
-    }
 
-    // 유저 차단 여부  메서드
-
-    public boolean isUserBlocked(String blocker, String targetUser) {
-        log.info("isUserBlocked 실행");
-        Set<String> blockedUsers = userBlockDao.getUserBlockList(blocker);
-        return blockedUsers.contains(targetUser);
-    }
-
-    // 유저 차단 해제  메서드
-    @Transactional
-    public UserBlockResponse removeUserBlock(String targetUser,
-        HttpServletRequest httpServletRequest) {
-        log.info("removeUserBlock 실행");
-        String blocker = myPageService.findByAccessToken(httpServletRequest).getNickname();
-        UserBlockResponse userBlockResponse = new UserBlockResponse(true);
-
-        if (blocker == null) {
-            userBlockResponse.setUserBlockResult(false);
-            throw new TokenNotFound();
-        }
-
-        userBlockDao.removeUserBlockList(blocker, targetUser);
-
-        return userBlockResponse;
-    }
-
-    // 유저 차단 목록 생성  메서드
-    @Transactional
-    public List<Map<String, String>> BlockList(Set<String> blockedUsers) {
-        // 사용자명 - 프로필 사진 url를 담을 리스트
-        List<Map<String, String>> userBlockList = new ArrayList<>();
-        // 리스트에 목록 추가하기
-        for (String nickname : blockedUsers) {
-            // 프로필 객체 찾기
-            Profile profile = myPageService.findUserByNickname(nickname).getProfile();
-            // 프로필 사진 url 찾기
-            String fileUrl = myPageService.profileFileUrl(profile.getProfileImages());
-            // 닉네임과 URL을 매칭하여 맵에 저장
-            Map<String, String> blockUserMap = new HashMap<>();
-            blockUserMap.put("nickname", nickname);
-            blockUserMap.put("fileUrl", fileUrl);
-            // 리스트에 추가
-            userBlockList.add(blockUserMap);
-        }
-        return userBlockList;
-    }
-
-    // 유저 차단 목록 가져오기  메서드
-    @Transactional
-    public BlockUserListResponse blockUserList(HttpServletRequest httpServletRequest) {
-        log.info("blockUserList 실행");
-        String blocker = myPageService.findByAccessToken(httpServletRequest).getNickname();
-        if (blocker == null) {
-            throw new TokenNotFound();
-        }
-        // 차단된 사용자 리스트 가져오기
-        Set<String> blockedUsers = userBlockDao.getUserBlockList(blocker);
-        return new BlockUserListResponse(BlockList(blockedUsers));
-    }
 }
