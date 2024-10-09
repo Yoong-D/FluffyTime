@@ -1,13 +1,14 @@
 package com.fluffytime.domain.user.controller.api;
 
 
+import com.fluffytime.domain.chat.service.ChatServcie;
 import com.fluffytime.domain.user.dto.request.ProfileRequest;
 import com.fluffytime.domain.user.dto.response.CheckUsernameResponse;
 import com.fluffytime.domain.user.dto.response.ImageResultResponse;
 import com.fluffytime.domain.user.dto.response.MyPageInformationResponse;
 import com.fluffytime.domain.user.dto.response.ProfileInformationResponse;
 import com.fluffytime.domain.user.dto.response.RequestResultResponse;
-import com.fluffytime.domain.user.service.MyPageService;
+import com.fluffytime.domain.user.service.MypageService;
 import com.fluffytime.global.auth.jwt.util.JwtTokenizer;
 import com.fluffytime.domain.user.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,8 +31,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class MyPageRestController {
 
-    private final MyPageService myPageService;
-    private final JwtTokenizer jwtTokenizer;
+    private final MypageService myPageService;
+    private final ChatServcie chatService;
 
     // 마이페이지 정보 가져오기
     @GetMapping("/api/mypage/info")
@@ -106,8 +107,12 @@ public class MyPageRestController {
         HttpServletResponse response) {
         log.info("회원 탈퇴 api 실행");
         User user = myPageService.findByAccessToken(httpServletRequest);
+
         RequestResultResponse requestResultResponse = myPageService.AccountDelete(user.getNickname(),
             response);
+
+        // 해당 유저가 존재하는 채팅 방 삭제
+        chatService.deleteAllChatRoomsByNickname(user.getNickname());
         return ResponseEntity.status(HttpStatus.OK).body(requestResultResponse);
     }
 

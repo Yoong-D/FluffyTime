@@ -1,7 +1,7 @@
 package com.fluffytime.domain.chat.interceptor;
 
 import com.fluffytime.domain.user.entity.User;
-import com.fluffytime.domain.user.service.MyPageService;
+import com.fluffytime.domain.user.service.MypageService;
 import io.micrometer.common.lang.Nullable;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
@@ -18,7 +18,7 @@ import org.springframework.web.socket.server.support.HttpSessionHandshakeInterce
 @RequiredArgsConstructor
 public class CustomHandshakeInterceptor extends HttpSessionHandshakeInterceptor {
 
-    private final MyPageService myPageService;
+    private final MypageService myPageService;
 
     @Override
     // 핸드셰이크 전에 실행되는 메서드 정의

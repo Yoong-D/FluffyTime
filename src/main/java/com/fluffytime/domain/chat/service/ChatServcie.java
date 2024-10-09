@@ -12,7 +12,7 @@ import com.fluffytime.domain.chat.repository.MessageRepository;
 import com.fluffytime.domain.user.entity.Profile;
 import com.fluffytime.domain.user.entity.ProfileImages;
 import com.fluffytime.domain.user.entity.User;
-import com.fluffytime.domain.user.service.MyPageService;
+import com.fluffytime.domain.user.service.MypageService;
 import com.fluffytime.global.auth.jwt.exception.TokenNotFound;
 import com.fluffytime.global.common.exception.global.UserNotFound;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,13 +37,13 @@ public class ChatServcie {
     private final ChatRoomRepository chatRoomRepository;
     private final RedisMessageListenerContainer redisMessageListenerContainer;
     private final RedisMessageSubscriber redisMessageSubscriber;
-    private final MyPageService myPageService;
+    private final MypageService mypageService;
 
     // 프로필 사진 찾기
     @Transactional
     public String findByProfileImage(String nickname) {
         log.info("findByProfileImage 실행");
-        User user = myPageService.findUserByNickname(nickname); // 유저 객체 조회
+        User user = mypageService.findUserByNickname(nickname); // 유저 객체 조회
         Profile profile = user.getProfile(); // 유저의 프로필 객체 조회
         ProfileImages profileImages = profile.getProfileImages();
         if (profileImages == null) {
@@ -134,7 +134,7 @@ public class ChatServcie {
         log.info("chatLog 실행");
         List<String> chatLog = new ArrayList<>();
         Long chatRoomId = findByRoomId(roomName);
-        User user = myPageService.findByAccessToken(request);
+        User user = mypageService.findByAccessToken(request);
         if (user == null) {
             throw new TokenNotFound();
         }
@@ -160,7 +160,7 @@ public class ChatServcie {
     public ChatRoomListResponse getTopicList(HttpServletRequest request) {
         log.info("getTopicList 실행");
         // 로그인한 유저의 닉네임 가져오기
-        User user = myPageService.findByAccessToken(request);
+        User user = mypageService.findByAccessToken(request);
         if (user == null) {
             throw new TokenNotFound();
         }
@@ -217,7 +217,7 @@ public class ChatServcie {
     public ChatResponse createTopic(String user1, HttpServletRequest request) {
         log.info("createTopic 실행");
         // 알파벳 순서대로 정렬
-        User user = myPageService.findByAccessToken(request);
+        User user = mypageService.findByAccessToken(request);
         String[] users;
         if (user != null) {
             String user2 = user.getNickname();
@@ -253,7 +253,7 @@ public class ChatServcie {
     @Transactional
     public RecipientInfoResponse recipientInfo(String nickname) {
         log.info("RecipientInfoResponse 실행");
-        User user = myPageService.findUserByNickname(nickname);
+        User user = mypageService.findUserByNickname(nickname);
         Profile profile = user.getProfile();
         String fileUrl = findByProfileImage(nickname);
         return createResponseDto(profile, nickname, fileUrl);
@@ -267,5 +267,20 @@ public class ChatServcie {
             .sender(sender)
             .chatLog(chatLog)
             .build();
+    }
+
+    // 탈퇴한 회원이 속한 채팅방 삭제하는 메서드
+    @Transactional
+    public void deleteAllChatRoomsByNickname(String nickname) {
+        // 닉네임으로 해당 유저가 속한 채팅방 리스트 가져오기
+        Optional<Set<String>> chatRooms = chatRoomRepository.findByRoomNameContaining(nickname);
+
+        // 채팅방이 존재하면 삭제
+        chatRooms.ifPresent(rooms -> {
+            rooms.forEach(roomName -> {
+                Optional<ChatRoom> chatRoom = chatRoomRepository.findByRoomName(roomName);
+                chatRoom.ifPresent(chatRoomRepository::delete);
+            });
+        });
     }
 }

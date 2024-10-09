@@ -1,7 +1,7 @@
 package com.fluffytime.domain.user.controller;
 
 import com.fluffytime.domain.user.entity.User;
-import com.fluffytime.domain.user.service.MyPageService;
+import com.fluffytime.domain.user.service.MypageService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @RequiredArgsConstructor
 public class MyPageController {
 
-    private final MyPageService myPageService;
+    private final MypageService myPageService;
 
     @GetMapping()
     public String home() {

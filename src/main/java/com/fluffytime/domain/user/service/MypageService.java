@@ -5,8 +5,7 @@ import com.fluffytime.domain.board.entity.Mention;
 import com.fluffytime.domain.board.entity.enums.TempStatus;
 import com.fluffytime.domain.board.repository.BookmarkRepository;
 import com.fluffytime.domain.board.repository.MentionRepository;
-import com.fluffytime.domain.chat.entity.ChatRoom;
-import com.fluffytime.domain.chat.repository.ChatRoomRepository;
+import com.fluffytime.domain.chat.service.ChatServcie;
 import com.fluffytime.domain.notification.service.AdminNotificationService;
 import com.fluffytime.domain.user.dto.request.ProfileRequest;
 import com.fluffytime.domain.user.dto.response.CheckUsernameResponse;
@@ -32,8 +31,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +41,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class MyPageService {
+public class MypageService {
 
     private final AdminNotificationService adminNotificationService;
     private final UserRepository userRepository;
@@ -53,7 +50,6 @@ public class MyPageService {
     private final JwtTokenizer jwtTokenizer;
     private final S3Service s3Service;
     private final MentionRepository mentionRepository;
-    private final ChatRoomRepository chatRoomRepository;
 
     // 사용자 조회(userId로 조회) 메서드
     @Transactional
@@ -128,8 +124,7 @@ public class MyPageService {
                 String filePath = post.getPostImages().isEmpty() ? null
                     : post.getPostImages().get(0).getFilepath();
                 String mimeType = post.getPostImages().isEmpty() ? null // 이미지가 없을 경우 null 저장
-                    : post.getPostImages().get(0).getMimetype(); // 수정: getFirst() -> get(0)
-
+                    : post.getPostImages().get(0).getMimetype();
                 // PostResponse 객체로 변환
                 return new PostResponse(post.getPostId(), filePath, mimeType);
             })
@@ -282,7 +277,7 @@ public class MyPageService {
                 .result(true)
                 .build();
         } else {
-            log.info("profileSave 실행 >> 해당 유저가 존재하지 않아 프로필 수정 불가 발생");
+            log.info("profileSave 실행 >> 해당 유저가 존재하지 않아 프로필 수정 불가");
             return RequestResultResponse.builder()
                 .result(false)
                 .build();
@@ -385,8 +380,6 @@ public class MyPageService {
             // 쿠기 삭제
             deleteCookie(response);
 
-            // 해당 유저가 존재하는 채팅 방 삭제
-            deleteAllChatRoomsByNickname(nickname);
             return RequestResultResponse.builder()
                 .result(true)
                 .build();
@@ -398,19 +391,6 @@ public class MyPageService {
         }
     }
 
-    // 탈퇴한 회원이 속한 채팅방 삭제하는 메서드
-    @Transactional
-    public void deleteAllChatRoomsByNickname(String nickname) {
-        // 닉네임으로 해당 유저가 속한 채팅방 리스트 가져오기
-        Optional<Set<String>> chatRooms = chatRoomRepository.findByRoomNameContaining(nickname);
 
-        // 채팅방이 존재하면 삭제
-        chatRooms.ifPresent(rooms -> {
-            rooms.forEach(roomName -> {
-                Optional<ChatRoom> chatRoom = chatRoomRepository.findByRoomName(roomName);
-                chatRoom.ifPresent(chatRoomRepository::delete);
-            });
-        });
-    }
 }
 

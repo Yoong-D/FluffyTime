@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class UserPageService {
 
-    private final MyPageService mypageService;
+    private final MypageService mypageService;
     private final UserBlockService userBlockService;
     private final UserBlockDao userBlockDao;
     private final MentionRepository mentionRepository;

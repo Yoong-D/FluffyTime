@@ -5,7 +5,6 @@ import com.fluffytime.domain.user.dto.response.BlockUserListResponse;
 import com.fluffytime.domain.user.dto.response.UserBlockResponse;
 import com.fluffytime.domain.user.entity.Profile;
 import com.fluffytime.domain.user.entity.User;
-import com.fluffytime.global.auth.jwt.exception.TokenNotFound;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserBlockService {
 
-    private final MyPageService mypageService;
+    private final MypageService mypageService;
     private final UserBlockDao  userBlockDao;
 
     // 유저 차단  메서드

@@ -1,7 +1,7 @@
 package com.fluffytime.domain.user.controller;
 
 import com.fluffytime.domain.user.entity.User;
-import com.fluffytime.domain.user.service.MyPageService;
+import com.fluffytime.domain.user.service.MypageService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @Slf4j
 public class UserPageController {
 
-    private final MyPageService myPageService;
+    private final MypageService myPageService;
 
     @GetMapping("/userpages/{nickname}")
     public String userPage(@PathVariable(name = "nickname") String nickname,
