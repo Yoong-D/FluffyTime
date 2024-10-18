@@ -5,8 +5,7 @@ import com.fluffytime.domain.board.entity.Mention;
 import com.fluffytime.domain.board.entity.enums.TempStatus;
 import com.fluffytime.domain.board.repository.BookmarkRepository;
 import com.fluffytime.domain.board.repository.MentionRepository;
-import com.fluffytime.domain.chat.entity.ChatRoom;
-import com.fluffytime.domain.chat.repository.ChatRoomRepository;
+import com.fluffytime.domain.chat.service.ChatService;
 import com.fluffytime.domain.notification.service.AdminNotificationService;
 import com.fluffytime.domain.user.dto.request.ProfileRequest;
 import com.fluffytime.domain.user.dto.response.CheckUsernameResponse;
@@ -32,8 +31,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,45 +41,16 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class MyPageService {
+public class MypageService {
 
     private final AdminNotificationService adminNotificationService;
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
     private final BookmarkRepository bookmarkRepository;
-    private final JwtTokenizer jwtTokenizer;
     private final S3Service s3Service;
     private final MentionRepository mentionRepository;
-    private final ChatRoomRepository chatRoomRepository;
-
-    // 사용자 조회(userId로 조회) 메서드
-    @Transactional
-    public User findUserById(Long userId) {
-        log.info("findUserById 실행");
-        return userRepository.findById(userId).orElse(null);
-    }
-
-    // 사용자 조회(nickname으로 조회) 메서드
-    @Transactional
-    public User findUserByNickname(String nickname) {
-        log.info("findUserByNickname 실행");
-        return userRepository.findByNickname(nickname).orElse(null);
-    }
-
-    // accessToken 토큰으로 사용자 찾기 메서드
-    @Transactional
-    public User findByAccessToken(HttpServletRequest httpServletRequest) {
-        log.info("findByAccessToken 실행");
-        String accessToken = jwtTokenizer.getTokenFromCookie(httpServletRequest, "accessToken");
-        if (accessToken == null) {
-            throw new TokenNotFound();
-        }
-        // accessToken값으로 UserId 추출
-        Long userId = Long.valueOf(
-            ((Integer) jwtTokenizer.parseAccessToken(accessToken).get("userId")));
-        // id(pk)에 해당되는 사용자 추출
-        return findUserById(userId);
-    }
+    private final ChatService chatService;
+    private final UserLookupService userLookupService;
 
     // 접근한 사용자와 실제 권한을 가진 사용자가 동일한지 판단하는 메서드
     public boolean isUserAuthorized(String accessNickname, String actuallyNickname) {
@@ -128,8 +96,7 @@ public class MyPageService {
                 String filePath = post.getPostImages().isEmpty() ? null
                     : post.getPostImages().get(0).getFilepath();
                 String mimeType = post.getPostImages().isEmpty() ? null // 이미지가 없을 경우 null 저장
-                    : post.getPostImages().get(0).getMimetype(); // 수정: getFirst() -> get(0)
-
+                    : post.getPostImages().get(0).getMimetype();
                 // PostResponse 객체로 변환
                 return new PostResponse(post.getPostId(), filePath, mimeType);
             })
@@ -186,7 +153,7 @@ public class MyPageService {
     // 마이페이지 정보 불러오기 응답 dto 구성
     @Transactional
     public MyPageInformationResponse createMyPageResponseDto(String nickname) {
-        User user = findUserByNickname(nickname);
+        User user = userLookupService.findUserByNickname(nickname);
 
         if (user != null) {
             log.info("createMyPageResponseDto 실행 >> 해당 유저가 존재하여 MyPageInformationDto를 구성");
@@ -237,7 +204,7 @@ public class MyPageService {
     @Transactional
     public ProfileInformationResponse createProfileResponseDto(String nickname) {
         log.info("createProfileResponseDto 실행");
-        User user = findUserByNickname(nickname);
+        User user = userLookupService.findUserByNickname(nickname);
 
         if (user != null) {
             log.info("createProfileResponseDto 실행 >> 해당 유저가 존재하여 ProfileInformationDto 구성");
@@ -261,7 +228,7 @@ public class MyPageService {
     // 프로필 업데이트 메서드
     @Transactional
     public RequestResultResponse profileSave(ProfileRequest profileRequest) {
-        User user = findUserByNickname(profileRequest.getNickname());
+        User user = userLookupService.findUserByNickname(profileRequest.getNickname());
 
         if (user != null) {
             log.info("profileSave 실행 >> 해당 유저가 존재하여 프로필을 업데이트하고 UpdateResultDto 구성");
@@ -282,7 +249,7 @@ public class MyPageService {
                 .result(true)
                 .build();
         } else {
-            log.info("profileSave 실행 >> 해당 유저가 존재하지 않아 프로필 수정 불가 발생");
+            log.info("profileSave 실행 >> 해당 유저가 존재하지 않아 프로필 수정 불가");
             return RequestResultResponse.builder()
                 .result(false)
                 .build();
@@ -305,7 +272,7 @@ public class MyPageService {
     public ImageResultResponse uploadProfileImage(String nickname,
         MultipartFile file) {
         log.info("uploadProfileImage 실행 ");
-        User user = findUserByNickname(nickname);
+        User user = userLookupService.findUserByNickname(nickname);
         Profile profile = user.getProfile();
 
         ImageResultResponse imageResultResponse = new ImageResultResponse();
@@ -332,7 +299,7 @@ public class MyPageService {
     @Transactional
     public ImageResultResponse deleteProfileImage(String nickname) {
         log.info("uploadProfileImage 실행");
-        User user = findUserByNickname(nickname);
+        User user = userLookupService.findUserByNickname(nickname);
         ImageResultResponse imageResultResponse = new ImageResultResponse();
         imageResultResponse.setResult(true);
 
@@ -376,17 +343,18 @@ public class MyPageService {
     // 회원 탈퇴 기능 메서드
     @Transactional
     public RequestResultResponse AccountDelete(String nickname, HttpServletResponse response) {
-        User user = findUserByNickname(nickname);
+        User user = userLookupService.findUserByNickname(nickname);
 
         if (user != null) { // 유저가 있다면 계정 삭제 진행
             adminNotificationService.withdrawJoinNotification(user);
             log.info("AccountDelete 실행 >> 해당 유저가 존재하여 회원 탈퇴");
+
+            // 해당 유저가 존재하는 채팅 방 삭제
+            chatService.deleteAllChatRoomsByNickname(user);
             userRepository.delete(user);
             // 쿠기 삭제
             deleteCookie(response);
 
-            // 해당 유저가 존재하는 채팅 방 삭제
-            deleteAllChatRoomsByNickname(nickname);
             return RequestResultResponse.builder()
                 .result(true)
                 .build();
@@ -398,19 +366,6 @@ public class MyPageService {
         }
     }
 
-    // 탈퇴한 회원이 속한 채팅방 삭제하는 메서드
-    @Transactional
-    public void deleteAllChatRoomsByNickname(String nickname) {
-        // 닉네임으로 해당 유저가 속한 채팅방 리스트 가져오기
-        Optional<Set<String>> chatRooms = chatRoomRepository.findByRoomNameContaining(nickname);
 
-        // 채팅방이 존재하면 삭제
-        chatRooms.ifPresent(rooms -> {
-            rooms.forEach(roomName -> {
-                Optional<ChatRoom> chatRoom = chatRoomRepository.findByRoomName(roomName);
-                chatRoom.ifPresent(chatRoomRepository::delete);
-            });
-        });
-    }
 }
 

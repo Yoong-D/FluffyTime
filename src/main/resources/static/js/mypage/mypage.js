@@ -115,7 +115,7 @@ function renderPosts(posts) {
 
   posts.forEach(post => {
     if (post.fileUrl != null) {
-      if (post.mineType === "video/mp4") {
+      if (post.mineType === "video/mp4" || post.mineType === "video/mov" || post.mineType === "video/webm") {
         const video = document.createElement('video'); // <img> 요소 생성
         video.classList.add('mypage_video');
         video.src = post.fileUrl;

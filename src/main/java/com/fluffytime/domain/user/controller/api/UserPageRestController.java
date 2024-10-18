@@ -3,6 +3,7 @@ package com.fluffytime.domain.user.controller.api;
 import com.fluffytime.domain.user.dto.response.BlockUserListResponse;
 import com.fluffytime.domain.user.dto.response.UserBlockResponse;
 import com.fluffytime.domain.user.dto.response.UserPageInformationResponse;
+import com.fluffytime.domain.user.service.UserBlockService;
 import com.fluffytime.domain.user.service.UserPageService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserPageRestController {
 
     private final UserPageService userPageService;
+    private final UserBlockService userBlockService;
 
 
     // 유저 페이지 정보 가져오기
@@ -40,7 +42,7 @@ public class UserPageRestController {
     public ResponseEntity<UserBlockResponse> blockUser(@RequestParam("nickname") String nickname,
         HttpServletRequest httpServletRequest) {
         log.info("유저 차단");
-        UserBlockResponse userBlockResponse = userPageService.userBlock(nickname,
+        UserBlockResponse userBlockResponse = userBlockService.userBlock(nickname,
             httpServletRequest);
         return ResponseEntity.status(HttpStatus.OK).body(userBlockResponse);
     }
@@ -51,7 +53,7 @@ public class UserPageRestController {
         @RequestParam("nickname") String nickname,
         HttpServletRequest httpServletRequest) {
         log.info("유저 차단 해제");
-        UserBlockResponse userBlockResponse = userPageService.removeUserBlock(nickname,
+        UserBlockResponse userBlockResponse = userBlockService.removeUserBlock(nickname,
             httpServletRequest);
         return ResponseEntity.status(HttpStatus.OK).body(userBlockResponse);
     }
@@ -60,7 +62,7 @@ public class UserPageRestController {
     @GetMapping("/api/users/block/list")
     public ResponseEntity<BlockUserListResponse> blockUserList(HttpServletRequest httpServletRequest) {
         log.info("유저 차단 리스트 불러오기");
-        BlockUserListResponse blockUserListResponse = userPageService.blockUserList(httpServletRequest);
+        BlockUserListResponse blockUserListResponse = userBlockService.blockUserList(httpServletRequest);
         return ResponseEntity.status(HttpStatus.OK).body(blockUserListResponse);
     }
 

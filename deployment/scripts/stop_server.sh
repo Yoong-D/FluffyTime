@@ -1,6 +1,6 @@
 #!/bin/bash
 # Find the process ID of the running JAR file and terminate it gracefully
-PID=$(pgrep -f 'apirdsdemo-0.0.1-SNAPSHOT.jar')
+PID=$(pgrep -f 'fluffytime-0.0.1-SNAPSHOT.jar')
 if [ -z "$PID" ]; then
 echo "No running application found."
 else
