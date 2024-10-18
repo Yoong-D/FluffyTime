@@ -13,11 +13,14 @@ import com.fluffytime.domain.user.entity.Profile;
 import com.fluffytime.domain.user.entity.ProfileImages;
 import com.fluffytime.domain.user.entity.User;
 import com.fluffytime.domain.user.service.MypageService;
+import com.fluffytime.domain.user.service.UserLookupService;
+import com.fluffytime.domain.user.service.UserPageService;
 import com.fluffytime.global.auth.jwt.exception.TokenNotFound;
 import com.fluffytime.global.common.exception.global.UserNotFound;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -31,19 +34,19 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ChatServcie {
+public class ChatService {
 
     private final MessageRepository messageRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final RedisMessageListenerContainer redisMessageListenerContainer;
     private final RedisMessageSubscriber redisMessageSubscriber;
-    private final MypageService mypageService;
+    private final UserLookupService userLookupService;
 
     // 프로필 사진 찾기
     @Transactional
     public String findByProfileImage(String nickname) {
         log.info("findByProfileImage 실행");
-        User user = mypageService.findUserByNickname(nickname); // 유저 객체 조회
+        User user = userLookupService.findUserByNickname(nickname); // 유저 객체 조회
         Profile profile = user.getProfile(); // 유저의 프로필 객체 조회
         ProfileImages profileImages = profile.getProfileImages();
         if (profileImages == null) {
@@ -79,24 +82,32 @@ public class ChatServcie {
 
     // nickname(로그인한 유저)을 기준으로 모든 채팅방에서 나와 채팅중인 사람을 찾아 Set에 저장
     @Transactional
-    public Set<String> findRecipientList(String nickname) {
+    public Set<String> findRecipientList(User user) {
         log.info("findRecipientList 실행");
         // 수신자가 없다면 null 값 반환
-        return chatRoomRepository.findAllOtherParticipants(nickname)
+        Set<Long> recipientIds = chatRoomRepository.findAllOtherParticipants(user.getUserId())
             .orElse(null);
+        Set<String> recipientList = new HashSet<>();
+        // 수신자들의 id를 닉네임으로 변환하여 Set에 저장
+        if (recipientIds != null) {
+            for (Long recipientId : recipientIds) {
+                String nickname = userLookupService.findUserById(recipientId).getNickname();
+                recipientList.add(nickname);
+            }
+        }
+        return recipientList;
     }
 
-    // nickname(로그인한 유저)을 기준으로 본인이 속한 채팅방을 찾아 Set에 저장
+    // 유저아이디로 본인이 속한 채팅방을 찾아 Set에 저장
     @Transactional
-    public Set<String> findChatRoomList(String nickname) {
+    public Set<String> findChatRoomList(User user) {
         log.info("findChatRoomList 실행");
         // 채팅방이 없다면 null 값 반환
-        return chatRoomRepository.findByRoomNameContaining(nickname)
-            .orElse(null);
+        return chatRoomRepository.findByRoomNameContaining(user.getUserId()).orElse(null);
     }
 
 
-    // nickname(로그인한 유저)을 기준으로 본인이 속한 모든 채팅방의 최신 채팅 내역을 찾아  List에 저장
+    // 유저아이디로 본인이 속한 모든 채팅방의 최신 채팅 내역을 찾아  List에 저장
     @Transactional
     public List<String> findChatLog(Set<String> chatRoomList) {
         log.info("findChatLog 실행");
@@ -134,7 +145,7 @@ public class ChatServcie {
         log.info("chatLog 실행");
         List<String> chatLog = new ArrayList<>();
         Long chatRoomId = findByRoomId(roomName);
-        User user = mypageService.findByAccessToken(request);
+        User user = userLookupService.findByAccessToken(request);
         if (user == null) {
             throw new TokenNotFound();
         }
@@ -146,7 +157,8 @@ public class ChatServcie {
 
         if (chat != null) {
             for (Chat chatMessage : chat) {
-                String senderName = chatMessage.getSender();
+                Long senderId = Long.parseLong(chatMessage.getSender());
+                String senderName = userLookupService.findUserById(senderId).getNickname();
                 String content = chatMessage.getContent();
                 String logEntry = senderName + " : " + content;
                 chatLog.add(logEntry);
@@ -159,20 +171,16 @@ public class ChatServcie {
     @Transactional
     public ChatRoomListResponse getTopicList(HttpServletRequest request) {
         log.info("getTopicList 실행");
-        // 로그인한 유저의 닉네임 가져오기
-        User user = mypageService.findByAccessToken(request);
+        User user = userLookupService.findByAccessToken(request);
         if (user == null) {
             throw new TokenNotFound();
         }
 
-        String nickname = user.getNickname();
-        log.info(nickname + "의 토픽 목록 불러오기!");
-
         // nickname(로그인한 유저)과 채팅중인 모든 수신자을 담은  Set
-        Set<String> recipient = findRecipientList(nickname);
+        Set<String> recipient = findRecipientList(user);
 
         // nickname(로그인한 유저)이 속한 모든 채널방 이름을 담은  Set
-        Set<String> chatRoomList = findChatRoomList(nickname);
+        Set<String> chatRoomList = findChatRoomList(user);
 
         //nickname(로그인한 유저)의 속한 모든 채팅방의 최근 채팅 내역을 담은 List
         List<String> recentChatList = findChatLog(chatRoomList);
@@ -192,7 +200,7 @@ public class ChatServcie {
 
     // 채널 생성
     @Transactional
-    public String creatChatRoom(String[] users) {
+    public String creatChatRoom(Long[] users) {
         log.info("creatChatRoom 실행");
         // 채널 명 생성
         String chatRoomName = "chat_" + users[0] + "_" + users[1];
@@ -214,14 +222,14 @@ public class ChatServcie {
 
     // 토픽 생성하기
     @Transactional
-    public ChatResponse createTopic(String user1, HttpServletRequest request) {
+    public ChatResponse createTopic(String nickname, HttpServletRequest request) {
         log.info("createTopic 실행");
         // 알파벳 순서대로 정렬
-        User user = mypageService.findByAccessToken(request);
-        String[] users;
-        if (user != null) {
-            String user2 = user.getNickname();
-            users = new String[]{user2, user1};
+        User user1 = userLookupService.findByAccessToken(request); // me
+        User user2 = userLookupService.findUserByNickname(nickname); // you
+        Long[] users;
+        if (user1 != null && user2 != null) {
+            users = new Long[]{user1.getUserId(), user2.getUserId()};
             Arrays.sort(users);
         } else {
             throw new UserNotFound();
@@ -253,7 +261,7 @@ public class ChatServcie {
     @Transactional
     public RecipientInfoResponse recipientInfo(String nickname) {
         log.info("RecipientInfoResponse 실행");
-        User user = mypageService.findUserByNickname(nickname);
+        User user = userLookupService.findUserByNickname(nickname);
         Profile profile = user.getProfile();
         String fileUrl = findByProfileImage(nickname);
         return createResponseDto(profile, nickname, fileUrl);
@@ -271,9 +279,11 @@ public class ChatServcie {
 
     // 탈퇴한 회원이 속한 채팅방 삭제하는 메서드
     @Transactional
-    public void deleteAllChatRoomsByNickname(String nickname) {
-        // 닉네임으로 해당 유저가 속한 채팅방 리스트 가져오기
-        Optional<Set<String>> chatRooms = chatRoomRepository.findByRoomNameContaining(nickname);
+    public void deleteAllChatRoomsByNickname(User user) {
+
+        // 유저 아이디로 해당 유저가 속한 채팅방 리스트 가져오기
+        Optional<Set<String>> chatRooms = chatRoomRepository.findByRoomNameContaining(
+            user.getUserId());
 
         // 채팅방이 존재하면 삭제
         chatRooms.ifPresent(rooms -> {
@@ -282,5 +292,7 @@ public class ChatServcie {
                 chatRoom.ifPresent(chatRoomRepository::delete);
             });
         });
+
+
     }
 }

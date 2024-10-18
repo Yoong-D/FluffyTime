@@ -1,7 +1,6 @@
 package com.fluffytime.domain.user.controller.api;
 
 
-import com.fluffytime.domain.chat.service.ChatServcie;
 import com.fluffytime.domain.user.dto.request.ProfileRequest;
 import com.fluffytime.domain.user.dto.response.CheckUsernameResponse;
 import com.fluffytime.domain.user.dto.response.ImageResultResponse;
@@ -9,8 +8,8 @@ import com.fluffytime.domain.user.dto.response.MyPageInformationResponse;
 import com.fluffytime.domain.user.dto.response.ProfileInformationResponse;
 import com.fluffytime.domain.user.dto.response.RequestResultResponse;
 import com.fluffytime.domain.user.service.MypageService;
-import com.fluffytime.global.auth.jwt.util.JwtTokenizer;
 import com.fluffytime.domain.user.entity.User;
+import com.fluffytime.domain.user.service.UserLookupService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -32,14 +31,14 @@ import org.springframework.web.multipart.MultipartFile;
 public class MyPageRestController {
 
     private final MypageService myPageService;
-    private final ChatServcie chatService;
+    private final UserLookupService userLookupService;
 
     // 마이페이지 정보 가져오기
     @GetMapping("/api/mypage/info")
     public ResponseEntity<MyPageInformationResponse> mypagesInfo(HttpServletRequest httpServletRequest) {
         log.info("마이페이지 정보 가져오기 api 실행 ");
 
-        User user = myPageService.findByAccessToken(httpServletRequest);
+        User user = userLookupService.findByAccessToken(httpServletRequest);
         MyPageInformationResponse myPageInformationResponse = myPageService.createMyPageResponseDto(
             user.getNickname());
 
@@ -52,7 +51,7 @@ public class MyPageRestController {
         HttpServletRequest httpServletRequest) {
         log.info("프로필 정보 가져오기 api 실행 ");
 
-        User user = myPageService.findByAccessToken(httpServletRequest);
+        User user = userLookupService.findByAccessToken(httpServletRequest);
         ProfileInformationResponse profileInformationResponse = myPageService.createProfileResponseDto(
             user.getNickname());
         return ResponseEntity.status(HttpStatus.OK).body(profileInformationResponse);
@@ -106,13 +105,10 @@ public class MyPageRestController {
     public ResponseEntity<RequestResultResponse> withdrawAccount(HttpServletRequest httpServletRequest,
         HttpServletResponse response) {
         log.info("회원 탈퇴 api 실행");
-        User user = myPageService.findByAccessToken(httpServletRequest);
+        User user = userLookupService.findByAccessToken(httpServletRequest);
 
         RequestResultResponse requestResultResponse = myPageService.AccountDelete(user.getNickname(),
             response);
-
-        // 해당 유저가 존재하는 채팅 방 삭제
-        chatService.deleteAllChatRoomsByNickname(user.getNickname());
         return ResponseEntity.status(HttpStatus.OK).body(requestResultResponse);
     }
 

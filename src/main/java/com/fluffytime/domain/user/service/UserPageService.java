@@ -27,8 +27,8 @@ public class UserPageService {
 
     private final MypageService mypageService;
     private final UserBlockService userBlockService;
-    private final UserBlockDao userBlockDao;
     private final MentionRepository mentionRepository;
+    private final UserLookupService userLookupService;
 
 
     // 기존 게시물 리스트에서 필요한 데이터만(이미지) 담은 postDto 리스트로 변환하는 메서드
@@ -95,8 +95,8 @@ public class UserPageService {
     @Transactional
     public UserPageInformationResponse createUserPageInformationDto(String nickname,
         HttpServletRequest httpServletRequest) {
-        User me = mypageService.findByAccessToken(httpServletRequest); // 현재 로그인한 유저
-        User user = mypageService.findUserByNickname(nickname);
+        User me = userLookupService.findByAccessToken(httpServletRequest); // 현재 로그인한 유저
+        User user = userLookupService.findUserByNickname(nickname);
 
         if (me == null) {
             throw new TokenNotFound();

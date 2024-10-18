@@ -4,7 +4,7 @@ import com.fluffytime.domain.chat.dto.response.ChatLogResponse;
 import com.fluffytime.domain.chat.dto.response.ChatResponse;
 import com.fluffytime.domain.chat.dto.response.ChatRoomListResponse;
 import com.fluffytime.domain.chat.dto.response.RecipientInfoResponse;
-import com.fluffytime.domain.chat.service.ChatServcie;
+import com.fluffytime.domain.chat.service.ChatService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,12 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class ChatApiController {
 
-    private final ChatServcie chatServcie;
+    private final ChatService chatService;
 
     // 토픽 목록
     @GetMapping("/topics")
     public ResponseEntity<ChatRoomListResponse> getTopicAll(HttpServletRequest request) {
-        ChatRoomListResponse chatRoomListResponse = chatServcie.getTopicList(request);
+        ChatRoomListResponse chatRoomListResponse = chatService.getTopicList(request);
         return ResponseEntity.status(HttpStatus.OK).body(chatRoomListResponse);
     }
 
@@ -35,7 +35,7 @@ public class ChatApiController {
     @PutMapping("/topics/{nickname}")
     public ResponseEntity<ChatResponse> createTopic(
         @PathVariable(name = "nickname") String nickname, HttpServletRequest request) {
-        ChatResponse chatResponse = chatServcie.createTopic(nickname, request);
+        ChatResponse chatResponse = chatService.createTopic(nickname, request);
         return ResponseEntity.status(HttpStatus.OK).body(chatResponse);
     }
 
@@ -44,7 +44,7 @@ public class ChatApiController {
     public ResponseEntity<ChatResponse> JoinTopic(
         @PathVariable(name = "roomName") String roomName) {
 
-        ChatResponse chatResponse = chatServcie.JoinTopic(roomName);
+        ChatResponse chatResponse = chatService.JoinTopic(roomName);
         return ResponseEntity.status(HttpStatus.OK).body(chatResponse);
     }
 
@@ -52,7 +52,7 @@ public class ChatApiController {
     @GetMapping("/recipient/{nickname}")
     public ResponseEntity<RecipientInfoResponse> recipientInfo(
         @PathVariable(name = "nickname") String nickname) {
-        RecipientInfoResponse recipientInfoResponse = chatServcie.recipientInfo(nickname);
+        RecipientInfoResponse recipientInfoResponse = chatService.recipientInfo(nickname);
         return ResponseEntity.status(HttpStatus.OK).body(recipientInfoResponse);
     }
 
@@ -61,7 +61,7 @@ public class ChatApiController {
     @GetMapping("/log/{roomName}")
     public ResponseEntity<ChatLogResponse> chatLog(
         @PathVariable(name = "roomName") String roomName, HttpServletRequest request) {
-        ChatLogResponse chatLogResponse = chatServcie.chatLog(roomName, request);
+        ChatLogResponse chatLogResponse = chatService.chatLog(roomName, request);
         return ResponseEntity.status(HttpStatus.OK).body(chatLogResponse);
 
     }

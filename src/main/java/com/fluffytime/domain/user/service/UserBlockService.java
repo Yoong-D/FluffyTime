@@ -21,16 +21,17 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserBlockService {
 
-    private final MypageService mypageService;
+    private final UserLookupService userLookupService;
     private final UserBlockDao  userBlockDao;
+    private final MypageService mypageService;
 
     // 유저 차단  메서드
     @Transactional
     public UserBlockResponse userBlock(String targetUser,
         HttpServletRequest httpServletRequest) {
         log.info("userBlock 실행");
-        String blockerId = Long.toString(mypageService.findByAccessToken(httpServletRequest).getUserId()); // 차단 하는 유저
-        String blockedId = Long.toString(mypageService.findUserByNickname(targetUser).getUserId()); // 차단 당하는 유저
+        String blockerId = Long.toString(userLookupService.findByAccessToken(httpServletRequest).getUserId()); // 차단 하는 유저
+        String blockedId = Long.toString(userLookupService.findUserByNickname(targetUser).getUserId()); // 차단 당하는 유저
 
         UserBlockResponse userBlockResponse = new UserBlockResponse(true);
 
@@ -51,8 +52,8 @@ public class UserBlockService {
         HttpServletRequest httpServletRequest) {
         log.info("removeUserBlock 실행");
 
-        String blockerId = Long.toString(mypageService.findByAccessToken(httpServletRequest).getUserId()); // 차단 하는 유저
-        String blockedId = Long.toString(mypageService.findUserByNickname(targetUser).getUserId());// 차단 당하는 유저
+        String blockerId = Long.toString(userLookupService.findByAccessToken(httpServletRequest).getUserId()); // 차단 하는 유저
+        String blockedId = Long.toString(userLookupService.findUserByNickname(targetUser).getUserId());// 차단 당하는 유저
         UserBlockResponse userBlockResponse = new UserBlockResponse(true);
 
         userBlockDao.removeUserBlockList(blockerId, blockedId);
@@ -70,7 +71,7 @@ public class UserBlockService {
         // 리스트에 목록 추가하기
         for (String userId : blockedUsers) {
             // 차단 유저 객체
-            User user = mypageService.findUserById(Long.parseLong(userId));
+            User user = userLookupService.findUserById(Long.parseLong(userId));
             // 프로필 객체 찾기
             Profile profile = user.getProfile();
 
@@ -91,7 +92,7 @@ public class UserBlockService {
     @Transactional
     public BlockUserListResponse blockUserList(HttpServletRequest httpServletRequest) {
         log.info("blockUserList 실행");
-        String blockerId = Long.toString(mypageService.findByAccessToken(httpServletRequest).getUserId());
+        String blockerId = Long.toString(userLookupService.findByAccessToken(httpServletRequest).getUserId());
 
         // 차단된 사용자 리스트 가져오기
         Set<String> blockedUsers = userBlockDao.getUserBlockList(blockerId);

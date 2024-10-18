@@ -3,6 +3,7 @@ package com.fluffytime.domain.chat.service;
 import com.fluffytime.domain.chat.entity.Chat;
 import com.fluffytime.domain.chat.repository.ChatRoomRepository;
 import com.fluffytime.domain.chat.repository.MessageRepository;
+import com.fluffytime.domain.user.service.UserLookupService;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ public class RedisMessageSubscriber implements MessageListener {
     private final RedisTemplate<String, Object> redisTemplate;
     private final MessageRepository messageRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final UserLookupService userLookupService;
 
     // 각 채널에 대한 세션을 관리하는 맵
     private static final Map<String, Set<WebSocketSession>> channelSessions = Collections.synchronizedMap(
@@ -64,8 +66,9 @@ public class RedisMessageSubscriber implements MessageListener {
     // mongodb에 채팅 내역 저장하기
     public void saveChat(Long chatRoomId, String[] temp) {
         Chat chat = new Chat();
+        Long senderId = userLookupService.findUserByNickname(temp[0]).getUserId();
         chat.setRoomId(chatRoomId);
-        chat.setSender(temp[0]);
+        chat.setSender(String.valueOf(senderId)); // 유저 닉네임 대신 아이디로 저장하기
         chat.setContent(temp[1].trim());
         chat.setTimestamp(LocalDateTime.now());
         messageRepository.save(chat);

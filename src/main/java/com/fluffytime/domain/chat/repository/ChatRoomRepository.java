@@ -17,16 +17,17 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     //채팅방 이름으로 채팅방 객체 찾기
     Optional<ChatRoom> findByRoomName(String roodName);
 
-    // 닉네임으로 해당 유저가 속한 채팅방 가져오기
-    @Query("SELECT c.roomName FROM chat_room c WHERE c.roomName LIKE %:nickname%")
-    Optional<Set<String>> findByRoomNameContaining(@Param("nickname") String nickname);
+    // 유저 아이디로 해당 유저가 속한 채팅방 가져오기
+    @Query("SELECT c.roomName FROM chat_room c WHERE c.userId1 = :userId OR c.userId2 = :userId")
+    Optional<Set<String>> findByRoomNameContaining(@Param("userId") Long userId);
 
-    // 닉네임으로 내가 속한 채팅방들 중에서 나와 채팅하는 모든 유저 가져오기
+    // 유저 아이디로 내가 속한 채팅방들 중에서 나와 채팅하는 모든 유저 가져오기
     @Query(
-        "SELECT CASE WHEN c.participantA = :nickname THEN c.participantB ELSE c.participantA END " +
+        "SELECT CASE WHEN c.userId1 = :userId THEN c.userId2 ELSE c.userId1 END " +
             "FROM chat_room c " +
-            "WHERE c.participantA = :nickname OR c.participantB = :nickname")
-    Optional<Set<String>> findAllOtherParticipants(@Param("nickname") String nickname);
+            "WHERE c.userId1 = :userId OR c.userId2 = :userId")
+    Optional<Set<Long>> findAllOtherParticipants(@Param("userId") Long userId);
+
 
 
 }

@@ -24,15 +24,15 @@ public class ChatRoom {
     @Column(name = "room_name", nullable = false)
     String roomName; // 두명의 유저 이름의 조합으로으로 방 생성
 
-    @Column(name = "participanta", nullable = false)
-    String participantA; // 참가자 1
+    @Column(name = "userid1", nullable = false)
+    Long userId1; // 참가자 1
 
-    @Column(name = "participantb", nullable = false)
-    String participantB; // 참가자 2
+    @Column(name = "userid2", nullable = false)
+    Long userId2; // 참가자 2
 
-    public ChatRoom(String roomName, String participantA, String participantB) {
+    public ChatRoom(String roomName, Long userId1, Long userId2) {
         this.roomName = roomName;
-        this.participantA = participantA;
-        this.participantB = participantB;
+        this.userId1 = userId1;
+        this.userId2 = userId2;
     }
 }
