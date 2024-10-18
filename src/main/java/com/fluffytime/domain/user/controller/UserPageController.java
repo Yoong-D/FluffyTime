@@ -1,7 +1,8 @@
 package com.fluffytime.domain.user.controller;
 
 import com.fluffytime.domain.user.entity.User;
-import com.fluffytime.domain.user.service.MyPageService;
+import com.fluffytime.domain.user.service.MypageService;
+import com.fluffytime.domain.user.service.UserLookupService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,14 +15,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 @Slf4j
 public class UserPageController {
 
-    private final MyPageService myPageService;
+    private final MypageService myPageService;
+    private final UserLookupService userLookupService;
 
     @GetMapping("/userpages/{nickname}")
     public String userPage(@PathVariable(name = "nickname") String nickname,
         HttpServletRequest httpServletRequest) {
         log.info("유저페이지 접근");
         // 로그인한 유저 찾기
-        User user = myPageService.findByAccessToken(httpServletRequest);
+        User user = userLookupService.findByAccessToken(httpServletRequest);
         // 로그인한 유저와 유저 페이지의 유저와 동일인인지 체크
         Boolean isAuthorized = myPageService.isUserAuthorized(user.getNickname(), nickname);
         if (isAuthorized) {

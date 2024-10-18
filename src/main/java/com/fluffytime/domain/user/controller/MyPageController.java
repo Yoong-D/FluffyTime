@@ -1,7 +1,8 @@
 package com.fluffytime.domain.user.controller;
 
 import com.fluffytime.domain.user.entity.User;
-import com.fluffytime.domain.user.service.MyPageService;
+import com.fluffytime.domain.user.service.MypageService;
+import com.fluffytime.domain.user.service.UserLookupService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -12,7 +13,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 @RequiredArgsConstructor
 public class MyPageController {
 
-    private final MyPageService myPageService;
+    private final MypageService myPageService;
+    private final UserLookupService userLookupService;
 
     @GetMapping()
     public String home() {
@@ -24,7 +26,7 @@ public class MyPageController {
     public String myPage(@PathVariable(name = "nickname") String nickname,
         HttpServletRequest httpServletRequest) {
         // 로그인한 유저 찾기
-        User user = myPageService.findByAccessToken(httpServletRequest);
+        User user = userLookupService.findByAccessToken(httpServletRequest);
         // 로그인한 유저와 마이페이지의 유저와 동일인인지 체크
         Boolean isAuthorized = myPageService.isUserAuthorized(user.getNickname(), nickname);
 
@@ -41,7 +43,7 @@ public class MyPageController {
     @GetMapping("/mypage/profile/edit/{nickname}")
     public String profileEdit(@PathVariable(name = "nickname") String nickname,
         HttpServletRequest httpServletRequest) {
-        User user = myPageService.findByAccessToken(httpServletRequest);
+        User user = userLookupService.findByAccessToken(httpServletRequest);
         Boolean isAuthorized = myPageService.isUserAuthorized(user.getNickname(), nickname);
 
         if (isAuthorized) {
