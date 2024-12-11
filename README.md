@@ -215,6 +215,8 @@ https://fluffytime.o-r.kr/
 - **AWS S3**
 - **AWS EC2**
 - **AWS Route53**
+- **AWS CodeDeploy**
+- **Git Action**
 - **Nginx 1.24.0**
 
 | 기술                      | 적용 이유                                                                                                                                                                                                         |
