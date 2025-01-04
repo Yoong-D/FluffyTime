@@ -148,7 +148,7 @@ https://fluffytime.o-r.kr/
 ## ⚒️ 프로젝트 아키텍쳐
 <div align="center">
   <br>
-    <img src="images/architecture.png" >
+    <img src="images/fluffyTime-Architecture.png" >
   <br>
 </div>
 
